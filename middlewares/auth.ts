@@ -4,37 +4,39 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-interface DecodedUser extends JwtPayload {
+export interface DecodedUser extends JwtPayload {
   id: string;
   email: string;
   role: string;
 }
 
-// Extend Express Request type to include `user`
 declare module "express-serve-static-core" {
   interface Request {
     user?: DecodedUser;
   }
 }
 
-export const authMiddleware = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
+export const auth = (req: Request, res: Response, next: NextFunction): void => {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // "Bearer <token>"
+  const token = authHeader?.split(" ")[1];
 
   if (!token) {
-    res.status(401).json({ message: "Access denied. No token provided." });
+    res
+      .status(401)
+      .json({ success: false, message: "Access denied. No token provided." });
     return;
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as DecodedUser;
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as DecodedUser;
     req.user = decoded;
     next();
-  } catch (error) {
-    res.status(401).json({ message: "Invalid or expired token" });
+  } catch (err) {
+    res
+      .status(401)
+      .json({ success: false, message: "Invalid or expired token" });
   }
 };
